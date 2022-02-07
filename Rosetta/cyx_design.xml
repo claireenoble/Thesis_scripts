@@ -1,0 +1,75 @@
+<ROSETTASCRIPTS> 
+	<SCOREFXNS>
+		<ScoreFunction name="scorewts" weights="ref2015">
+			<Reweight scoretype = "atom_pair_constraint" weight = "1"/>
+                        <Reweight scoretype = "angle_constraint" weight = "1"/>
+		</ScoreFunction>
+		<ScoreFunction name="softwts" weights="ref2015_soft">
+			<Reweight scoretype = "atom_pair_constraint" weight = "1"/>
+                        <Reweight scoretype = "angle_constraint" weight = "1"/>
+		</ScoreFunction>
+	</SCOREFXNS> 
+	<RESIDUE_SELECTORS>
+			<Layer name="corelayer" select_core="true" select_boundary="false" select_surface="false" core_cutoff="4.0" />
+			<Layer name="boundarylayer" select_core="false" select_boundary="true" select_surface="false" core_cutoff="4.0" />
+			<Layer name="surfacelayer" select_core="false" select_boundary="false" select_surface="true" core_cutoff="4.0" />
+			<ResidueName name = "cyx" residue_names = "CYX"/>	
+	</RESIDUE_SELECTORS>
+	<TASKOPERATIONS>
+		<InitializeFromCommandline name = "ifcl"/>
+		<IncludeCurrent name = "input_sc"/>
+		<ReadResfile name = "resfile" filename ="resfile.txt"/>
+		<ReadResfile name="core_resfile" filename="core_resfile.txt" selector="corelayer" />
+		<OperateOnResidueSubset name = "maintain_cyx" selector = "cyx">
+			<RestrictToRepackingRLT/>
+		</OperateOnResidueSubset>
+        <OperateOnResidueSubset name = "maintain_sur" selector = "surfacelayer">
+			<RestrictToRepackingRLT/>
+		</OperateOnResidueSubset>
+        <OperateOnResidueSubset name = "maintain_bound" selector = "boundarylayer">
+			<RestrictToRepackingRLT/>
+		</OperateOnResidueSubset>
+		<RestrictToRepacking name = "no_mutations"/>
+		<ExtraRotamersGeneric name = "extra_rot1" ex1 = "1" ex2 = "1" ex1_sample_level = "3" ex2_sample_level = "3" extrachi_cutoff = "0"/>
+	</TASKOPERATIONS> 
+	<FILTERS>
+		<PackStat name = "pstat" threshold = "0.58" repeats = "3"/> 
+	</FILTERS>
+	<MOVERS>
+		<MutateResidue name = "makecys" target = "94" new_res="CYX"/>
+		<ConstraintSetMover name = "atomic" cst_file = "my_atomic.cst"/>
+		<FastDesign name = "fastdesign" scorefxn = "scorewts" task_operations = "resfile" cst_file = "my_atomic.cst"/>
+		<PackRotamersMover name = "repack" scorefxn = "scorewts" task_operations = "maintain_sur,maintain_cyx,maintain_bound,ifcl,no_mutations"/> 
+		<PackRotamersMover name = "pr1" scorefxn = "softwts" task_operations = "core_resfile,maintain_sur,maintain_cyx,maintain_bound,ifcl"/> 
+		<PackRotamersMover name = "pr2" scorefxn = "scorewts" task_operations = "core_resfile,maintain_sur,maintain_cyx,maintain_bound,ifcl,extra_rot1"/> 
+		<MinMover name="minmovsc" scorefxn = "softwts" tolerance = "0.005" chi="1" bb="0"/>
+		<MinMover name="minmovbb" scorefxn = "scorewts" tolerance = "0.005" chi="0" bb="1"/>
+		<Backrub name = "backrub" pivot_residues="1-108" require_mm_bend ="1"/>
+		<Sidechain name = "sidechain" task_operations = "ifcl,no_mutations"/> 
+		<ParsedProtocol name = "backrub_protocol" mode = "random_order">
+			<Add mover_name = "backrub"/>
+			<Add mover_name = "backrub"/>
+			<Add mover_name = "backrub"/>
+			<Add mover_name = "sidechain"/>
+		</ParsedProtocol>
+		<GenericMonteCarlo name = "backrub_mc" mover_name = "backrub_protocol" scorefxn_name = "scorewts" trials = "200" temperature = "1.2" preapply = "0"/>
+			<ParsedProtocol name="flexdes">
+			<Add mover_name="pr1"/>
+			<Add mover_name="minmovsc"/>
+			<Add mover_name="pr2"/>
+			<Add mover_name="minmovbb"/>
+			<Add mover_name="pr2" filter_name="pstat"/>
+		</ParsedProtocol>
+		<GenericMonteCarlo name="iterate" mover_name="flexdes" scorefxn_name="scorewts" trials="3" preapply="0" temperature ="0.4"/>  
+	</MOVERS>
+		<PROTOCOLS>
+		<Add mover_name ="makecys"/>
+		<Add mover_name="atomic"/> 
+		<Add mover_name = "fastdesign"/>
+		<Add mover_name="backrub_mc"/> 
+		<Add mover_name="repack"/> 
+		<Add mover_name = "iterate"/>
+		<Add filter_name = "pstat"/>
+	</PROTOCOLS>
+	<OUTPUT scorefxn="scorewts"/>  
+</ROSETTASCRIPTS>

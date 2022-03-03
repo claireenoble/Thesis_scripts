@@ -1,0 +1,69 @@
+#!/bin/bash
+#
+#PBS -q gpu
+#PBS -l walltime=60:0:0,nodes=1:ppn=1:gpus=1
+#PBS -N H1_trunc  #specifying name of job - OPTIONAL
+#PBS -j oe
+#PBS -o ./H1_trunc.pbsout #specifiying output name - OPTIONAL
+# 1. Load module(s)
+#
+module add apps/amber-16
+module add cuda 
+
+echo "--------- Starting ------------"
+echo $(date)
+#
+# 2. Set directories
+
+export MYDIR="$HOME/2_XL/3_H1_trunc" #input directory
+export MYEXE="pmemd.cuda" 
+
+cd $MYDIR 
+pwd
+
+int=1
+x=`expr $x0 + $int`
+X=5
+for x in `seq $x $int $X`; do
+
+    mkdir MD_$x
+    cp ./* ./MD_$x
+    cd MD_$x
+
+    export PROTEIN="h1_trunc" #name of protein in folder (same as usual)
+    echo $PROTEIN
+
+
+    echo "Starting minsolv"
+    #read user1
+    pmemd -O -i minsolv.i -o minsolv.log -p $PROTEIN.prmtop -c $PROTEIN.inpcrd -ref $PROTEIN.inpcrd -r minsolv.rst 
+    old=minsolv
+
+    pmemd -O -i mdsolvpmemd.i -o mdsolvpmemd.log -p $PROTEIN.prmtop -c $old.rst -ref $PROTEIN.inpcrd -x mdsolvpmemd.nc -r mdsolvpmemd.rst 
+    old=mdsolvpmemd
+
+
+    MYEXE="pmemd.cuda"
+    for name in min heat eq_npt; do
+        echo "Starting $name"
+        if [ $name = min ] ; then
+            MYEXE="pmemd"
+        fi  
+    
+        $MYEXE -O -i $name.i -o $name.log -p $PROTEIN.prmtop -c $old.rst -ref $PROTEIN.inpcrd -x $name.nc -r $name.rst 
+        old=$name
+        MYEXE="pmemd.cuda"
+    done
+
+    old="eq_npt" ##
+    x0=0
+
+
+    ln -s $old.rst md$x0.rst
+
+
+    pmemd.cuda -O -i md.i -o md$x.log -p $PROTEIN.prmtop -c md$x0.rst -x md$x.nc -r md$x.rst 
+    x0=$x
+
+cd $MYDIR
+done

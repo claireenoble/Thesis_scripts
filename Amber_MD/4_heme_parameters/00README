@@ -1,0 +1,22 @@
+Heme parameters and forcefield modifications used in various simulations
+
+****** HemeB.frcmod with HemeB.mol2 ******
+
+All-atom parameters for a 6-coordinate heme with no ligands included. The mol2 file was converted from the deprecated .prep format heme_all.in file available as standard in AmberTools. This parameter was used for simulation of 5-coordinate histidine containing systems, as more appropriate parameters for a heme with a single histidine ligand could not be found.
+
+Available at: http://amber.manchester.ac.uk/
+
+****** Cyx_HemeB.frcmod with Cyx_HemeB.lib ******
+
+Used for the 5-coordinate cysteine ligated hemes, in conjunction with standard CYX.lib parameters for deprotonated cysteine. 
+
+Taken from Ferric-high-spin.frcmod- Shahrokh,K; Orendt,A; Yost, G.S; and Cheatham III, T.E. Jour Comp Chem (2011).
+
+****** His_HemeB.frcmod with His_HemeB.lib ******
+
+Used for 6-coordinate, bis-histidine ligated hemes. Parameters include the coordinating histidines, which must be renamed to HIN and HIM in the PDB file (see tleap scripts) for these parameters to work.
+Taken from Yang, Longhua, et al. "Data for molecular dynamics simulations of B-type cytochrome c oxidase with the Amber force field." Data in brief 8 (2016): 1209-1214.
+
+
+
+

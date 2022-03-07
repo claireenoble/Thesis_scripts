@@ -1,0 +1,23 @@
+Scripts for carrying out tleap processing of input pdbs.
+
+1 - prep_leap.sh
+
+In this example PDBs must be named *initial.pdb to be recognised by this script.
+Renames the histidines and hemes at specified locations to the HIN/HIM and HEB names required for amber.
+Uses the AmberTools reduce and pdb4amber functions to remove all non-Amber naming convention hydrogens, and prepare for leap.
+
+The output file is named *_input.pdb
+
+2 - write_leap.sh
+
+PDBs named *_input.pdb will be recognised by this script.
+Writes input leap files for individual proteins. In this example, the heme is at position 197 and the coordinating histidines are at residues 9 and 109.
+The script defines the orbital hybridisation for the heme Fe and NO/NP atoms to prevent sp0 errors in tleap.
+
+3 - run_leap.sh
+
+Runs all of the written tleap input files for each of the structures. Leads to production of inpcrd and prmtop files for production MD, plus a reference PDB file called *tleap.pdb for manual checking of the solvation/ions.
+
+4 - example_tleap.in
+
+An example tleap input file produced by write_leap.sh

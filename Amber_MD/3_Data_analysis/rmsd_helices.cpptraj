@@ -1,0 +1,10 @@
+noexitonerror
+parm *.prmtop
+reference *.inpcrd
+
+clear trajin
+#trajin 20ns.nc 1 las 1
+trajin combined.nc 1 last 1
+rmsd r1 @CA,C,N,O&!:WAT reference out rms.dat
+rmsd r2 :3-44,52-95,103-146,152-195,@CA,C,N,O&!:WAT reference out rms_helices.dat
+go

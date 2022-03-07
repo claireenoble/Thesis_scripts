@@ -1,0 +1,9 @@
+>rmsd.cpptraj
+
+
+Example script for preparing and autoimaging input trajectories for any length of simulation, and calculating the rmsd.
+
+>rmsd_helices.cpptraj
+
+Input script for calculating rmds for the entire protein and also for the protein with the loops excluded. In this example the helices mapped are for e4D2, and the initial inpcrd file is used as a reference for calculating rmsd.
+

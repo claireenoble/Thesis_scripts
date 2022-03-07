@@ -1,0 +1,10 @@
+parm *.prmtop
+trajin md*0.nc
+autoimage
+trajout combined.nc
+
+rms fit :1-195
+go
+run
+
+quit

@@ -1,0 +1,54 @@
+<ROSETTASCRIPTS>
+    <SCOREFXNS>
+        <ScoreFunction name="score" weights="ref2015"/>
+        <ScoreFunction name="soft" weights="ref2015_soft"/>
+    </SCOREFXNS>
+    <RESIDUE_SELECTORS>
+            <ResidueName name="hemes" residue_names="HEM"/>
+            <ResidueName name="his_lig" residue_name3="HIS"/>
+            <Or name="heme_ligands" selectors="hemes,his_lig"/>
+            <Neighborhood name="local" selector="hemes" distance="9"/>
+            <Not name="not_local" selector="local"/>   <!-- Selecting all but the primary shell-->
+            <RandomResidue name="rand_pol" selector="local" num_residues="2"/>
+            <Not name="not_rand" selector="rand_pol"/>
+	</RESIDUE_SELECTORS>
+    <TASKOPERATIONS>
+<!--         <InitializeFromCommandline name="ifcl"/>
+        <IncludeCurrent name="input_sc"/> -->
+        <ReadResfile name="res" filename="resfile.txt"/>
+        <ReadResfile name="polar_res" filename="polar_resfile.txt"/>
+        <RestrictToRepacking name="repackonly"/>
+        <OperateOnResidueSubset name="hemes_repack_only" selector="heme_ligands">
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="protein_repack" selector="not_local"> <!-- Everything but primary repacks-->
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="not_pol_repack" selector="not_rand"> <!-- Everything but polar repacks-->
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="pol_repack" selector="rand_pol"> <!-- Polar doesnt repack-->
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <ExtraRotamersGeneric name="extra_rot1" ex1="1" ex2="1" ex1_sample_level="3" ex2_sample_level="3" extrachi_cutoff="0"/> 
+    </TASKOPERATIONS>
+    <FILTERS>
+        <Rmsd name ="rmsd" confidence="0"/>
+        <PackStat name="pstat" threshold="0.55" repeats="3"/>
+    </FILTERS>
+    <MOVERS>
+        <ConstraintSetMover name="constraints" add_constraints="true" cst_file="constraints.cst"/>
+        <FastDesign name="polar" scorefxn="soft" task_operations="polar_res,hemes_repack_only,not_pol_repack"/>
+        <FastDesign name="fast" scorefxn="score" task_operations="res,hemes_repack_only,protein_repack,pol_repack"/>
+        <FastRelax name="relax" scorefxn="score" disable_design="true"/>
+    </MOVERS>
+    <PROTOCOLS>
+        <Add mover_name="constraints"/>
+        <Add mover_name="polar"/>
+        <Add mover_name="fast"/>
+        <Add mover_name="relax"/>
+        <Add filter_name="rmsd"/> 
+        <Add filter_name="pstat"/>  
+    </PROTOCOLS>
+	<OUTPUT scorefxn="score"/>  
+</ROSETTASCRIPTS>

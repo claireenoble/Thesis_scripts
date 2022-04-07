@@ -1,0 +1,77 @@
+<ROSETTASCRIPTS> 
+	<SCOREFXNS>
+		<ScoreFunction name="scorewts" weights="score13">
+			<Reweight scoretype = "atom_pair_constraint" weight = "1"/> 
+			<Reweight scoretype = "angle_constraint" weight = "1"/> 
+			<Reweight scoretype = "hack_aro" weight = "1"/>
+			<Reweight scoretype = "fa_pair" weight = "0"/>
+			<Reweight scoretype = "fa_elec" weight = "0.55"/>
+			<Reweight scoretype = "rg" weight = "2"/> 
+		</ScoreFunction>
+		<ScoreFunction name="scorewts_backrub" weights="score13">
+			<Reweight scoretype = "atom_pair_constraint" weight = "1"/> 
+			<Reweight scoretype = "angle_constraint" weight = "1"/> 
+			<Reweight scoretype = "rg" weight = "2"/>
+			<Reweight scoretype = "hack_aro" weight = "1"/>
+		</ScoreFunction>
+		<ScoreFunction name="softwts" weights="soft_rep_design">
+			<Reweight scoretype = "atom_pair_constraint" weight = "1"/> 	
+			<Reweight scoretype = "angle_constraint" weight = "1"/>
+			<Reweight scoretype = "hack_aro" weight = "1"/>
+			<Reweight scoretype = "rg" weight = "2"/> 
+		</ScoreFunction>
+	</SCOREFXNS> 
+	<RESIDUE_SELECTORS>
+			<ResidueName name = "polar" residue_name3 = "SER,THR,ASN,GLN,PRO,TYR"/>
+			<ResidueName name = "charged" residue_name3 = "LYS,ARG,ASP,GLU"/>
+	</RESIDUE_SELECTORS>
+	<TASKOPERATIONS>
+		<ReadResfile name = "rr" filename = "resfile.txt"/>
+		<InitializeFromCommandline name = "ifcl"/>
+		<IncludeCurrent name = "input_sc"/>
+		<RestrictToRepacking name = "no_mutations"/>
+		<ExtraRotamersGeneric name = "extra_rot1" ex1 = "1" ex2 = "1" ex1_sample_level = "3" ex2_sample_level = "3" extrachi_cutoff = "0"/>
+		<OperateOnResidueSubset name = "fixpolars" selector = "polar">
+			<PreventRepackingRLT/>
+		</OperateOnResidueSubset>
+		<OperateOnResidueSubset name = "fixcharged" selector = "charged">
+			<PreventRepackingRLT/>
+		</OperateOnResidueSubset>
+	</TASKOPERATIONS> 
+	<FILTERS>
+		<PackStat name = "pstat" threshold = "0.58" repeats = "3"/> 
+	</FILTERS>
+	<MOVERS>
+		<ConstraintSetMover name = "atomic" cst_file = "my_atomic.cst"/>
+		<PackRotamersMover name = "repack" scorefxn = "scorewts" task_operations = "ifcl,no_mutations"/> 
+		<PackRotamersMover name = "pr1" scorefxn = "softwts" task_operations = "rr,ifcl"/> 
+		<PackRotamersMover name = "pr2" scorefxn = "scorewts" task_operations = "rr,ifcl,extra_rot1"/> 
+		<MinMover name="minmovsc" scorefxn = "softwts" tolerance = "0.005" chi="1" bb="0"/>
+		<MinMover name="minmovbb" scorefxn = "scorewts" tolerance = "0.005" chi="0" bb="1"/>
+		<Backrub name = "backrub" pivot_residues="1-108" require_mm_bend ="1"/>
+		<Sidechain name = "sidechain" task_operations = "ifcl,no_mutations,fixpolars,fixcharged"/> 
+		<ParsedProtocol name = "backrub_protocol" mode = "random_order">
+			<Add mover_name = "backrub"/>
+			<Add mover_name = "backrub"/>
+			<Add mover_name = "backrub"/>
+			<Add mover_name = "sidechain"/>
+		</ParsedProtocol>
+		<GenericMonteCarlo name = "backrub_mc" mover_name = "backrub_protocol" scorefxn_name = "scorewts_backrub" trials = "200" temperature = "1.2" preapply = "0"/>
+		<ParsedProtocol name="flexdes">
+			<Add mover_name="pr1"/>
+			<Add mover_name="minmovsc"/>
+			<Add mover_name="pr2"/>
+			<Add mover_name="minmovbb"/>
+			<Add mover_name="pr2" filter_name="pstat"/>
+		</ParsedProtocol>
+		<GenericMonteCarlo name="iterate" mover_name="flexdes" scorefxn_name="scorewts" trials="3" preapply="0" temperature ="0.4"/> 
+	</MOVERS>
+		<PROTOCOLS>
+		<Add mover_name="atomic"/> 
+		<Add mover_name="repack"/> 
+		<Add mover_name="backrub_mc"/> 
+		<Add mover_name = "iterate"/> 
+		<Add filter_name = "pstat"/>
+	</PROTOCOLS>
+	<OUTPUT scorefxn="scorewts"/>  
+</ROSETTASCRIPTS>

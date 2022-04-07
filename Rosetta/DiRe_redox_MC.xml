@@ -1,0 +1,83 @@
+<ROSETTASCRIPTS>
+    <SCOREFXNS>
+        <ScoreFunction name="score" weights="ref2015"/>
+        <ScoreFunction name="soft" weights="ref2015_soft"/>
+    </SCOREFXNS>
+    <RESIDUE_SELECTORS>
+<ResidueName name="hemes" residue_names="HEM"/>
+            <ResidueName name="his_lig" residue_name3="HIS"/>
+            <Or name="undesignable" selectors="hemes,his_lig"/>
+            <Not name="hemes_undesignable" selector="undesignable"/>
+            <Neighborhood name="primary_shell" selector="hemes" distance="8"/>
+            <And name="pri_designable" selectors="primary_shell,hemes_undesignable"/>         
+            <Neighborhood name="secondary_shell" selector="primary_shell" distance="6"/>
+            <Not name="not_primary" selector="primary_shell"/>
+            <And name="sec_designable" selectors="secondary_shell,not_primary"/>       
+            <Not name="repack_only_sec" selector="secondary_shell"/> <!-- Selecting all but the secondary shell-->
+            <Not name="repack_only_pri" selector="primary_shell"/>   <!-- Selecting all but the primary shell-->
+	</RESIDUE_SELECTORS>
+    <TASKOPERATIONS>
+        <InitializeFromCommandline name="ifcl"/>
+        <IncludeCurrent name="input_sc"/>
+        <ReadResfile name="res" filename="resfile.txt"/>
+        <RestrictToRepacking name="repackonly"/>
+        <OperateOnResidueSubset name="hemes_repack_only" selector="undesignable">
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="primary_repack_only" selector="primary_shell">
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="restrict_all_but_primary" selector="repack_only_pri"> <!-- Everything but primary repacks-->
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+                <OperateOnResidueSubset name="restrict_all_but_secondary" selector="repack_only_sec"> <!-- Everything but secondary repacks-->
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <ExtraRotamersGeneric name="extra_rot1" ex1="1" ex2="1" ex1_sample_level="3" ex2_sample_level="3" extrachi_cutoff="0"/> 
+    </TASKOPERATIONS>
+    <FILTERS>
+        <Rmsd name ="rmsd" confidence="0"/>
+        <PackStat name="pstat" threshold="0.55" repeats="3"/>
+    </FILTERS>
+    <MOVERS>
+        <ConstraintSetMover name="atomic" cst_file="constraints.cst"/>
+        <MutateResidue name="alanise" residue_selector="pri_designable" new_res="ALA"/>
+        <PackRotamersMover name="repack" scorefxn="score" task_operations="input_sc,ifcl,repackonly"/> 
+        <PackRotamersMover name="pr_soft1" scorefxn="soft" task_operations="hemes_repack_only,res,ifcl,restrict_all_but_primary,input_sc"/> 
+        <PackRotamersMover name="pr_soft2" scorefxn="soft" task_operations="hemes_repack_only,res,ifcl,primary_repack_only,restrict_all_but_secondary,input_sc"/> 
+		<PackRotamersMover name="pr1" scorefxn="score" task_operations="hemes_repack_only,res,ifcl,restrict_all_but_primary,input_sc"/> 
+		<PackRotamersMover name="pr2" scorefxn="score" task_operations="hemes_repack_only,res,ifcl,primary_repack_only,restrict_all_but_secondary,input_sc"/> 
+		<MinMover name="minmovsc" scorefxn="soft" tolerance="0.005" chi="1" bb="0"/>
+		<MinMover name="minmovbb" scorefxn="score" tolerance="0.005" chi="0" bb="1"/>
+        <MinMover name="minmov" scorefxn="score" tolerance="0.005" chi="1" bb="1"/>
+        <Backrub name="backrub" pivot_residues="1-196" require_mm_bend="1"/>
+        <Sidechain name="sidechain" task_operations="ifcl,repackonly"/>    
+        <RandomMover name="rearrange" movers="backrub,sidechain" weights="0.75,0.25" repeats="4"/>
+        <GenericMonteCarlo name="rearrange_mc" mover_name="rearrange" scorefxn_name="score" trials="5" temperature="1" preapply="0"/>
+        <ParsedProtocol name="primary_redesign">
+            <Add mover_name="pr_soft1"/>
+            <Add mover_name="minmovsc"/>
+            <Add mover_name="pr1"/>
+            <Add mover_name="minmovbb"/>
+            <Add mover_name="repack"/>
+        </ParsedProtocol>
+        <GenericMonteCarlo name="primary_mc" mover_name="primary_redesign" scorefxn_name="score" trials="10" preapply="0" temperature ="0.7"/>         
+        <ParsedProtocol name="secondary_redesign">
+            <Add mover_name="pr_soft2"/>
+            <Add mover_name="minmovsc"/>
+             <Add mover_name="pr2"/>
+            <Add mover_name="minmovbb"/>
+        </ParsedProtocol>
+        <GenericMonteCarlo name="secondary_mc" mover_name="secondary_redesign" scorefxn_name="score" trials="6" preapply="0" temperature ="0.7"/>  -->
+    </MOVERS>
+    <PROTOCOLS>
+
+        <Add mover_name="primary_mc"/>
+        <Add mover_name="rearrange_mc"/>
+        <Add mover_name="secondary_mc"/>
+        <Add mover_name="minmov"/>
+        <Add filter_name="rmsd"/> 
+        <Add filter_name="pstat"/> 
+    </PROTOCOLS>
+	<OUTPUT scorefxn="score"/>  
+</ROSETTASCRIPTS>
